@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>초고속 QR 출석</title>
+<script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+
+<body style="text-align:center; font-family:sans-serif;">
+<h2>QR 출석 스캔</h2>
+
+<div id="reader" style="width:300px; margin:auto;"></div>
+<p id="result" style="font-size:22px; margin-top:20px;"></p>
+
+<audio id="successSound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+<audio id="failSound" src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg"></audio>
+
+<button onclick="startCamera()" style="font-size:20px; padding:10px;">
+📷 카메라 시작
+</button>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzh3n-wbzF1F0IFC0Ib2pVXPIigL_Eg6OjWUKnZ6o19k1jKW4CwVlCcAUsUgLeEJRwU/exec";
+
+let scanner;
+let lastScan = "";
+let lastTime = 0;
+
+// 🚀 플래시 효과
+function flash(color){
+  const d=document.createElement("div");
+  d.style.position="fixed";
+  d.style.top=0;
+  d.style.left=0;
+  d.style.width="100%";
+  d.style.height="100%";
+  d.style.background=color;
+  d.style.opacity="0.6";
+  d.style.zIndex="9999";
+  document.body.appendChild(d);
+  setTimeout(()=>d.remove(),150);
+}
+
+// 🚀 스캔
+function onScanSuccess(code){
+  const now = Date.now();
+  if(code===lastScan && now-lastTime<800) return; // 🔥 0.8초
+
+  lastScan=code;
+  lastTime=now;
+
+  fetch(API_URL+"?action=checkin&code="+code, {cache:"no-store"})
+  .then(r=>r.text())
+  .then(t=>{
+    let d;
+    try{ d=JSON.parse(t);}catch{
+      document.getElementById("result").innerText="⚠️ 서버 오류";
+      flash("orange");
+      return;
+    }
+
+    if(d.status==="SUCCESS"){
+      document.getElementById("result").innerText=
+      `✅ ${d.name} (${d.school})\n🕒 ${d.time}`;
+      successSound.play();
+      flash("green");
+
+    }else if(d.status==="ALREADY"){
+      document.getElementById("result").innerText=
+      `⚠️ 이미 출석\n${d.name}`;
+      failSound.play();
+      flash("yellow");
+
+    }else{
+      document.getElementById("result").innerText="❌ 미등록";
+      failSound.play();
+      flash("red");
+    }
+  });
+}
+
+// 🚀 카메라
+function startCamera(){
+  scanner=new Html5Qrcode("reader");
+  scanner.start(
+    { facingMode:"environment"},
+    { fps:20, qrbox:200 }, // 🔥 속도 핵심
+    onScanSuccess
+  );
+}
+</script>
+</body>
+</html>
