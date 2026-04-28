@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>출석 대시보드</title>
+</head>
+
+<body style="font-family:sans-serif; text-align:center;">
+
+<h1>📊 실시간 출석 현황</h1>
+
+<h2 id="summary"></h2>
+
+<div style="width:80%; margin:auto; background:#ddd; height:30px;">
+  <div id="bar" style="height:30px; background:green; width:0%"></div>
+</div>
+
+<h3>최근 출석자</h3>
+<ul id="list" style="list-style:none; padding:0;"></ul>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbwY_DN4m6f6NSdTlNgGI04iHifqJ1FmnzDea_8czw-gVN8Mdf2kq7MdMU8w0Dq6dpcW/exec";
+
+function loadData() {
+  fetch(API_URL + "?action=dashboard")
+    .then(res => res.json())
+    .then(data => {
+
+      document.getElementById("summary").innerText =
+        `${data.checked} / ${data.total} (${data.rate}%)`;
+
+      document.getElementById("bar").style.width = data.rate + "%";
+
+      const listEl = document.getElementById("list");
+      listEl.innerHTML = "";
+
+      data.list.forEach(p => {
+        const li = document.createElement("li");
+        li.innerText = `${p.name} (${p.school}) - ${p.time}`;
+        listEl.appendChild(li);
+      });
+
+    });
+}
+
+// 🔥 3초마다 자동 갱신
+setInterval(loadData, 3000);
+loadData();
+</script>
+
+</body>
+</html>
