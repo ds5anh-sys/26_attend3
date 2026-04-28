@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>출석 전광판</title>
+
+<style>
+body {
+  margin:0;
+  font-family: sans-serif;
+  background: #020617;
+  color: white;
+  text-align: center;
+}
+
+/* 큰 이름 */
+#bigName {
+  font-size: 80px;
+  font-weight: bold;
+  margin-top: 120px;
+}
+
+/* 학교 */
+#school {
+  font-size: 40px;
+  margin-top: 10px;
+  color: #94a3b8;
+}
+
+/* 시간 */
+#time {
+  font-size: 30px;
+  margin-top: 10px;
+  color: #38bdf8;
+}
+
+/* 애니메이션 */
+.flash {
+  animation: pop 0.5s ease;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 하단 통계 */
+#footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #0f172a;
+  padding: 15px;
+}
+
+#summary {
+  font-size: 24px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="bigName">대기중...</div>
+<div id="school"></div>
+<div id="time"></div>
+
+<div id="footer">
+  <div id="summary"></div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbwY_DN4m6f6NSdTlNgGI04iHifqJ1FmnzDea_8czw-gVN8Mdf2kq7MdMU8w0Dq6dpcW/exec";
+
+let lastName = "";
+
+// 🔥 시간 포맷
+function formatTime(t) {
+  if (!t) return "";
+
+  if (typeof t === "string" && t.includes("-") && t.includes(":") && t.length <= 16) {
+    return t;
+  }
+
+  const d = new Date(t);
+  if (isNaN(d)) return "";
+
+  const mm = String(d.getMonth()+1).padStart(2,"0");
+  const dd = String(d.getDate()).padStart(2,"0");
+  const hh = String(d.getHours()).padStart(2,"0");
+  const min = String(d.getMinutes()).padStart(2,"0");
+
+  return `${mm}-${dd} ${hh}:${min}`;
+}
+
+// 🔥 데이터 로드
+function loadData(){
+  fetch(API_URL + "?action=dashboard")
+  .then(res => res.json())
+  .then(data => {
+
+    // 하단 요약
+    document.getElementById("summary").innerText =
+      `출석 ${data.checked} / ${data.total} (${data.rate}%)`;
+
+    if (!data.list.length) return;
+
+    const latest = data.list[0];
+
+    // 🔥 새 사람일 때만 갱신
+    if (latest.name !== lastName) {
+      lastName = latest.name;
+
+      const nameEl = document.getElementById("bigName");
+      const schoolEl = document.getElementById("school");
+      const timeEl = document.getElementById("time");
+
+      nameEl.innerText = latest.name;
+      schoolEl.innerText = latest.school;
+      timeEl.innerText = "🕒 " + formatTime(latest.time);
+
+      // 애니메이션
+      nameEl.classList.remove("flash");
+      void nameEl.offsetWidth;
+      nameEl.classList.add("flash");
+    }
+  });
+}
+
+// 🔥 3초 갱신
+setInterval(loadData, 3000);
+loadData();
+</script>
+
+</body>
+</html>
