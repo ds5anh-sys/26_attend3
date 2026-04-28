@@ -3,47 +3,114 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>출석 대시보드</title>
+
+<style>
+body {
+  font-family: sans-serif;
+  background: #0f172a;
+  color: white;
+  text-align: center;
+}
+
+h1 {
+  font-size: 40px;
+  margin: 20px 0;
+}
+
+#summary {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+#barWrap {
+  width: 80%;
+  margin: auto;
+  background: #334155;
+  height: 40px;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+#bar {
+  height: 40px;
+  width: 0%;
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  transition: width 0.5s;
+}
+
+#list {
+  margin-top: 30px;
+  font-size: 20px;
+}
+</style>
 </head>
 
-<body style="font-family:sans-serif; text-align:center;">
+<body>
 
 <h1>📊 실시간 출석 현황</h1>
 
-<h2 id="summary"></h2>
+<div id="summary">로딩중...</div>
 
-<div style="width:80%; margin:auto; background:#ddd; height:30px;">
-  <div id="bar" style="height:30px; background:green; width:0%"></div>
+<div id="barWrap">
+  <div id="bar"></div>
 </div>
 
-<h3>최근 출석자</h3>
-<ul id="list" style="list-style:none; padding:0;"></ul>
+<div id="list"></div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbwY_DN4m6f6NSdTlNgGI04iHifqJ1FmnzDea_8czw-gVN8Mdf2kq7MdMU8w0Dq6dpcW/exec";
+const API_URL = "https://script.google.com/macros/s/XXXX/exec";
 
+// 🔥 시간 포맷 함수 (핵심 추가)
+function formatTime(t) {
+  if (!t) return "";
+
+  // 이미 MM-dd HH:mm 형태면 그대로 사용
+  if (typeof t === "string" && t.includes("-") && t.includes(":") && t.length <= 16) {
+    return t;
+  }
+
+  const d = new Date(t);
+  if (isNaN(d)) return "";
+
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+
+  return `${mm}-${dd} ${hh}:${min}`;
+}
+
+// 🔥 데이터 불러오기
 function loadData() {
   fetch(API_URL + "?action=dashboard")
     .then(res => res.json())
     .then(data => {
 
+      // 요약
       document.getElementById("summary").innerText =
         `${data.checked} / ${data.total} (${data.rate}%)`;
 
+      // 진행바
       document.getElementById("bar").style.width = data.rate + "%";
 
+      // 리스트
       const listEl = document.getElementById("list");
       listEl.innerHTML = "";
 
       data.list.forEach(p => {
-        const li = document.createElement("li");
-        li.innerText = `${p.name} (${p.school}) - ${p.time}`;
-        listEl.appendChild(li);
+        const div = document.createElement("div");
+        div.innerText =
+          `${p.name} (${p.school}) - ${formatTime(p.time)}`;
+        listEl.appendChild(div);
       });
 
+    })
+    .catch(() => {
+      document.getElementById("summary").innerText = "⚠️ 데이터 로드 실패";
     });
 }
 
-// 🔥 3초마다 자동 갱신
+// 🔥 자동 갱신
 setInterval(loadData, 3000);
 loadData();
 </script>
